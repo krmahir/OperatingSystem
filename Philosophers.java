@@ -1,5 +1,7 @@
 package Week5;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 
@@ -9,6 +11,7 @@ class Philosophers implements Runnable
     private static final int NB_PHILOSOPHERS = 5;
     private static final Semaphore[] forks = new Semaphore[NB_PHILOSOPHERS];
     private static Random rand = new Random();
+    public List<Philosophers> whoAteAlready = new ArrayList<Philosophers>();
 
     private int id;
 
@@ -31,39 +34,44 @@ class Philosophers implements Runnable
     }
 
     private void eat() {
+        if(whoAteAlready.contains(this)==true)
+            return;
 
-        System.out.println(this + " is hungry.");
+        else{
+            System.out.println(this + " is hungry.");
 
-        // Try to take fork on the left
-        try{
-            forks[id].acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            // Try to take fork on the left
+
+            if(forks[id+1].tryAcquire()==false){
+                forks[id].release();
+            }
+
+            System.out.println(this + " Holding left fork");
+
+            try {
+                Thread.sleep(6000);				//Philosopher is pausing before going for the other fork
+            } catch (InterruptedException e) {
+                System.err.println("One philosopher thread died :(");
+                System.exit(1);
+            };
+
+            // Try to take fork on the right
+            try{
+                forks[(id + 1) % NB_PHILOSOPHERS].acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(this + " Holding right fork");
+
+            System.out.println(this + " is eating.");
+            this.nap();			//Philosopher is eating for a while
+
+            forks[(id + 1) % NB_PHILOSOPHERS].release();
+            forks[id].release();
+
+            System.out.println(this + " has finished eating.");
+            whoAteAlready.add(this);
         }
-        System.out.println(this + " Holding left fork");
-
-        try {
-            Thread.sleep(6000);				//Philosopher is pausing before going for the other fork
-        } catch (InterruptedException e) {
-            System.err.println("One philosopher thread died :(");
-            System.exit(1);
-        };
-
-        // Try to take fork on the right
-        try{
-            forks[(id + 1) % NB_PHILOSOPHERS].acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        System.out.println(this + " Holding right fork");
-
-        System.out.println(this + " is eating.");
-        this.nap();			//Philosopher is eating for a while
-
-        forks[(id + 1) % NB_PHILOSOPHERS].release();
-        forks[id].release();
-
-        System.out.println(this + " has finished eating.");
     }
 
     public String toString() {
